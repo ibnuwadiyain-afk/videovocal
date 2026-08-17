@@ -1,0 +1,7 @@
+{
+  "name": "VocalCut Pro+",
+  "description": "Offline real-time video player with vocal isolation, music removal, and real-time Pitch Shift (-12 to +12 semitones) and Tempo (0.5x to 2.0x) DSP controls.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
