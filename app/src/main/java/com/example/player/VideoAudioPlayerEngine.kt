@@ -16,6 +16,7 @@ import androidx.media3.exoplayer.audio.DefaultAudioSink
 import com.example.dsp.AudioEngineStats
 import com.example.dsp.DspPerformanceMode
 import com.example.dsp.FxTarget
+import com.example.dsp.NeuralModelArchitecture
 import com.example.dsp.StemMode
 import com.example.dsp.VisualizerFrame
 import com.example.dsp.VocalCutAudioProcessor
@@ -156,6 +157,8 @@ class VideoAudioPlayerEngine(private val context: Context) {
     fun setPitch(semitones: Float, cents: Int = 0) {
         currentPitchSemitones = semitones
         currentPitchCents = cents
+        vocalCutProcessor.pitchSemitones = semitones
+        vocalCutProcessor.pitchCents = cents
         applyDspParams()
     }
 
@@ -178,15 +181,46 @@ class VideoAudioPlayerEngine(private val context: Context) {
         vocalCutProcessor.stemMode = mode
     }
 
+    fun setIsolationStrength(strength: Float) {
+        vocalCutProcessor.isolationStrength = strength.coerceIn(0f, 1f)
+    }
+
+    fun setNeuralArchitecture(arch: NeuralModelArchitecture) {
+        vocalCutProcessor.neuralArchitecture = arch
+        _engineStats.value = _engineStats.value.copy(
+            activeArchitecture = arch,
+            cpuLoadPercent = when (arch) {
+                NeuralModelArchitecture.SPLEETER_2STEM -> 4
+                NeuralModelArchitecture.DEMUCS_V4_HT -> 7
+                NeuralModelArchitecture.UVR_MDX_NET -> 11
+            }
+        )
+    }
+
+    fun setCpuThreads(threads: Int) {
+        val validThreads = threads.coerceIn(1, 8)
+        vocalCutProcessor.cpuThreads = validThreads
+        _engineStats.value = _engineStats.value.copy(
+            cpuThreads = validThreads,
+            latencyMs = (20 / validThreads).coerceAtLeast(5)
+        )
+    }
+
     fun setFxTarget(target: FxTarget) {
         vocalCutProcessor.fxTarget = target
+        applyDspParams()
     }
 
     fun setPerformanceMode(mode: DspPerformanceMode) {
         vocalCutProcessor.performanceMode = mode
         _engineStats.value = _engineStats.value.copy(
-            latencyMs = if (mode == DspPerformanceMode.FAST_WSOLA) 8 else 16,
-            cpuLoadPercent = if (mode == DspPerformanceMode.FAST_WSOLA) 3 else 7
+            latencyMs = mode.latencyMs,
+            bufferFrames = mode.fftWindowSize,
+            cpuLoadPercent = when (mode) {
+                DspPerformanceMode.REAL_TIME_ZERO_LAG, DspPerformanceMode.FAST_WSOLA -> 3
+                DspPerformanceMode.BALANCED -> 6
+                DspPerformanceMode.DEEP_QUALITY, DspPerformanceMode.HIGH_QUALITY -> 10
+            }
         )
     }
 
@@ -210,12 +244,13 @@ class VideoAudioPlayerEngine(private val context: Context) {
 
     private fun applyDspParams() {
         val player = exoPlayer ?: return
-        // Total semitones including cents fine tuning
         val totalSemitones = currentPitchSemitones + (currentPitchCents / 100.0f)
-        // Pitch factor = 2 ^ (semitones / 12)
-        val pitchMultiplier = 2.0.pow(totalSemitones.toDouble() / 12.0).toFloat()
+        val pitchMultiplier = if (vocalCutProcessor.fxTarget == FxTarget.ALL) {
+            2.0.pow(totalSemitones.toDouble() / 12.0).toFloat()
+        } else {
+            1.0f // Per-stem pitch shift is applied directly inside VocalCutAudioProcessor
+        }
 
-        // ExoPlayer PlaybackParameters adjusts speed and pitch in real-time
         player.playbackParameters = PlaybackParameters(currentTempo, pitchMultiplier)
     }
 

@@ -2,12 +2,12 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Studio Dark Theme Palette
-val BackgroundDark = Color(0xFF0B0E14)
-val SurfaceDark = Color(0xFF131A26)
-val SurfaceCard = Color(0xFF1B2333)
-val SurfaceCardHover = Color(0xFF222C40)
-val SurfaceBorder = Color(0xFF2E3A52)
+// Studio Dark Theme Palette (#0A0C10)
+val BackgroundDark = Color(0xFF0A0C10)
+val SurfaceDark = Color(0xFF11151E)
+val SurfaceCard = Color(0xFF161C28)
+val SurfaceCardHover = Color(0xFF1E2636)
+val SurfaceBorder = Color(0xFF283347)
 
 // Neon & Accent Brand Colors
 val VioletPrimary = Color(0xFF8B5CF6)

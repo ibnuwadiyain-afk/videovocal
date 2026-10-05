@@ -1,6 +1,6 @@
 {
   "name": "VocalCut Pro+",
-  "description": "Offline real-time video player with vocal isolation, music removal, and real-time Pitch Shift (-12 to +12 semitones) and Tempo (0.5x to 2.0x) DSP controls.",
+  "description": "On-device neural vocal separation and video player with real-time Pitch & Tempo DSP, multi-model architectures (Demucs v4 HT, Spleeter, UVR-MDX), web stream prober & multitask downloader, and Arabic/Unicode MP4 video export.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

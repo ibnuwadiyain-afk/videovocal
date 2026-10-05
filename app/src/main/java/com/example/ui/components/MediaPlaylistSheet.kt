@@ -19,11 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Audiotrack
 import androidx.compose.material.icons.filled.FileOpen
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.Button
@@ -38,13 +34,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.player.MediaItemInfo
 import com.example.ui.theme.CyanNeon
-import com.example.ui.theme.EmeraldAccent
 import com.example.ui.theme.SurfaceBorder
 import com.example.ui.theme.SurfaceCard
 import com.example.ui.theme.TextMuted
@@ -59,13 +54,14 @@ fun MediaPlaylistSheet(
     currentTrack: MediaItemInfo?,
     onSelectTrack: (MediaItemInfo) -> Unit,
     onMediaPicked: (Uri, String) -> Unit,
+    onScanDeviceMedia: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            val fileName = it.lastPathSegment?.substringAfterLast('/') ?: "Offline Media File"
+            val fileName = it.lastPathSegment?.substringAfterLast('/') ?: "Local Media File"
             onMediaPicked(it, fileName)
         }
     }
@@ -82,51 +78,99 @@ fun MediaPlaylistSheet(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Media Library & Offline Audio/Video",
+                    text = "Media Library & Local Storage",
                     color = TextPrimary,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Supports local video/audio files or built-in test tracks",
+                    text = "Open local video/audio files or scan device storage",
                     color = TextSecondary,
                     fontSize = 11.sp
                 )
             }
 
-            Button(
-                onClick = { filePickerLauncher.launch("video/*,audio/*") },
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = CyanNeon),
-                modifier = Modifier.testTag("open_file_button")
-            ) {
-                Icon(
-                    imageVector = Icons.Default.FileOpen,
-                    contentDescription = "Open File",
-                    tint = Color.Black,
-                    modifier = Modifier.size(14.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(text = "Open File", color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Button(
+                    onClick = onScanDeviceMedia,
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = VioletPrimary),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                    modifier = Modifier.testTag("scan_device_media_button")
+                ) {
+                    Text(text = "Scan", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+
+                Button(
+                    onClick = { filePickerLauncher.launch("*/*") },
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = CyanNeon),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                    modifier = Modifier.testTag("open_file_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FileOpen,
+                        contentDescription = "Open File",
+                        tint = Color.Black,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(text = "Open File", color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
             }
         }
 
-        // Media Item List
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(380.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(mediaList, key = { it.id }) { track ->
-                val isSelected = currentTrack?.id == track.id
-                TrackCard(
-                    track = track,
-                    isSelected = isSelected,
-                    onClick = { onSelectTrack(track) }
-                )
+        if (mediaList.isEmpty()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = SurfaceCard),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, SurfaceBorder)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.VideoLibrary,
+                        contentDescription = "Empty Library",
+                        tint = CyanNeon,
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Text(
+                        text = "No Media Files Loaded",
+                        color = TextPrimary,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Tap 'Open File' to load a video or audio track from your device, or 'Scan' to index MediaStore.",
+                        color = TextMuted,
+                        fontSize = 11.sp,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(320.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(mediaList, key = { it.id }) { track ->
+                    val isSelected = currentTrack?.id == track.id
+                    TrackCard(
+                        track = track,
+                        isSelected = isSelected,
+                        onClick = { onSelectTrack(track) }
+                    )
+                }
             }
         }
     }
@@ -166,7 +210,7 @@ private fun TrackCard(
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            imageVector = if (track.isSample) Icons.Default.Audiotrack else Icons.Default.VideoLibrary,
+                            imageVector = Icons.Default.VideoLibrary,
                             contentDescription = track.title,
                             tint = if (isSelected) CyanNeon else TextSecondary,
                             modifier = Modifier.size(18.dp)
